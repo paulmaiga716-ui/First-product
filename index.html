@@ -85,6 +85,12 @@
     button:hover {
       opacity: 0.85;
     }
+
+    .tip {
+  color: #888;
+  font-size: 13px;
+  margin: 8px 0;
+}
   </style>
 </head>
 
@@ -99,6 +105,8 @@
       placeholder="在这里输入你的文字……"
     ></textarea>
 
+    <p class="tip">注：不计标点符号，一个英文单词算一个字符。</p>
+
     <div class="stats">
       <span>字符数：<span id="count">0</span></span>
       <span>剩余：<span id="remaining">100</span></span>
@@ -111,36 +119,51 @@
   </div>
 
   <script>
-    const input = document.getElementById("textInput");
-    const count = document.getElementById("count");
-    const remaining = document.getElementById("remaining");
-    const clearBtn = document.getElementById("clearBtn");
-    const copyBtn = document.getElementById("copyBtn");
+    
+const input = document.getElementById("textInput");
+const count = document.getElementById("count");
+const remaining = document.getElementById("remaining");
+const clearBtn = document.getElementById("clearBtn");
+const copyBtn = document.getElementById("copyBtn");
 
-    input.addEventListener("input", function () {
-      count.textContent = input.value.length;
-      remaining.textContent = 100 - input.value.length;
-    });
+// 统计汉字和英文单词
+function countUnits(text) {
+  const matches = text.match(
+    /[\p{Script=Han}]|[A-Za-z]+(?:['’][A-Za-z]+)*/gu
+  );
 
-    clearBtn.addEventListener("click", function () {
-      input.value = "";
-      count.textContent = 0;
-      remaining.textContent = 100;
-    });
+  return matches ? matches.length : 0;
+}
 
-    copyBtn.addEventListener("click", async function () {
-      if (input.value === "") {
-        alert("请先输入文字！");
-        return;
-      }
+// 输入文字时，更新统计结果
+input.addEventListener("input", function () {
+  const total = countUnits(input.value);
 
-      try {
-        await navigator.clipboard.writeText(input.value);
-        alert("复制成功！");
-      } catch (error) {
-        alert("复制失败，请检查浏览器权限。");
-      }
-    });
+  count.textContent = total;
+  remaining.textContent = 100 - total;
+});
+
+// 清空文字
+clearBtn.addEventListener("click", function () {
+  input.value = "";
+  count.textContent = 0;
+  remaining.textContent = 100;
+});
+
+// 复制文字
+copyBtn.addEventListener("click", async function () {
+  if (input.value === "") {
+    alert("请先输入文字！");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(input.value);
+    alert("复制成功！");
+  } catch (error) {
+    alert("复制失败，请检查浏览器权限。");
+  }
+});
   </script>
 </body>
 </html>
