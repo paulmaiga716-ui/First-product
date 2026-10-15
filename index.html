@@ -112,45 +112,104 @@
       <span>剩余：<span id="remaining">100</span></span>
     </div>
 
-    <div class="buttons">
-      <button id="copyBtn">复制文字</button>
-      <button id="clearBtn">清空文字</button>
-    </div>
-  </div>
+<div class="buttons">
+  <button id="copyBtn">复制文字</button>
+  <button id="clearBtn">清空文字</button>
+</div>
+
+<div class="buttons" style="margin-top: 12px;">
+  <button id="symbolBtn">开启符号计数：关闭</button>
+</div>
 
   <script>
-    
+
 const input = document.getElementById("textInput");
 const count = document.getElementById("count");
 const remaining = document.getElementById("remaining");
 const clearBtn = document.getElementById("clearBtn");
 const copyBtn = document.getElementById("copyBtn");
+const symbolBtn = document.getElementById("symbolBtn");
 
-// 统计汉字和英文单词
+// 默认关闭符号计数
+let countSymbols = false;
+
+// 英文词典
+const dictionary = new Set();
+let dictionaryReady = false;
+
+// 加载外部英文词典
+fetch("https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt")
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("词典加载失败");
+    }
+    return response.text();
+  })
+  .then(data => {
+    data.split(/\r?\n/).forEach(word => {
+      dictionary.add(word.trim().toLowerCase());
+    });
+
+    dictionaryReady = true;
+    updateCount();
+    console.log("英文词典加载成功");
+  })
+  .catch(error => {
+    console.error("英文词典加载失败：", error);
+  });
+
+// 统计文字
 function countUnits(text) {
   const matches = text.match(
-    /[\p{Script=Han}]|[A-Za-z]+(?:['’][A-Za-z]+)*/gu
+    /[\p{Script=Han}]|[A-Za-z]+(?:['’][A-Za-z]+)*|[^\s\p{Script=Han}A-Za-z\d]/gu
   );
 
-  return matches ? matches.length : 0;
+  if (!matches) return 0;
+
+  let total = 0;
+
+  for (const item of matches) {
+    // 每个汉字计数 1
+    if (/^[\p{Script=Han}]$/u.test(item)) {
+      total++;
+    }
+    // 符号只有在开启模式后才计数
+    else if (/^[^\s\p{Script=Han}A-Za-z\d]$/u.test(item)) {
+      if (countSymbols) total++;
+    }
+    // 词典中的英文单词计数 1
+    else if (
+      dictionaryReady &&
+      dictionary.has(item.toLowerCase())
+    ) {
+      total++;
+    }
+    // 不在词典中的英文串按字母逐个计数
+    else {
+      total += (item.match(/[A-Za-z]/g) || []).length;
+    }
+  }
+
+  return total;
 }
 
-// 输入文字时，更新统计结果
-input.addEventListener("input", function () {
+// 更新字符数和剩余数量
+function updateCount() {
   const total = countUnits(input.value);
-
   count.textContent = total;
   remaining.textContent = 100 - total;
-});
+}
 
-// 清空文字
+// 输入时自动统计
+input.addEventListener("input", updateCount);
+
+// 清空按钮
 clearBtn.addEventListener("click", function () {
   input.value = "";
-  count.textContent = 0;
-  remaining.textContent = 100;
+  updateCount();
 });
 
-// 复制文字
+// 复制按钮
 copyBtn.addEventListener("click", async function () {
   if (input.value === "") {
     alert("请先输入文字！");
@@ -164,6 +223,21 @@ copyBtn.addEventListener("click", async function () {
     alert("复制失败，请检查浏览器权限。");
   }
 });
+
+// 符号计数切换按钮
+symbolBtn.addEventListener("click", function () {
+  countSymbols = !countSymbols;
+
+  symbolBtn.textContent = countSymbols
+    ? "开启符号计数：开启"
+    : "开启符号计数：关闭";
+
+  updateCount();
+});
+
+// 页面打开时先统计一次
+updateCount();
+
   </script>
 </body>
 </html>
